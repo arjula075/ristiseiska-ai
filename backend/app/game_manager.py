@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import deque
+from pathlib import Path
 import os
 
 from ristiseiska.state import reset
@@ -19,14 +20,22 @@ SUIT_SYMBOL = {
     "SPADES": "♠",
 }
 
+# Tämä tiedosto on tyyliin backend/app/.../game_manager.py
+# backend-kansion saa näin talteen varmasti.
+BACKEND_DIR = Path(__file__).resolve().parents[2]
+DEFAULT_MODEL_PATH = BACKEND_DIR / "models" / "policy_rl_shaped_open7_500k_v2.pt"
+
 
 class GameManager:
     def __init__(self):
-        self.model = load_policy_model(
-            model_path=os.getenv("MODEL_PATH"),
-            device=os.getenv("MODEL_DEVICE", "cpu"),
-        )
         self.device = os.getenv("MODEL_DEVICE", "cpu")
+        self.model = None
+
+        env_model_path = os.getenv("MODEL_PATH")
+        if env_model_path:
+            self.model_path = Path(env_model_path)
+        else:
+            self.model_path = DEFAULT_MODEL_PATH
 
         self.state = None
         self.recent_events = deque(maxlen=20)
@@ -124,10 +133,6 @@ class GameManager:
 
         cont_values = {getattr(a, "cont", False) for a in play_actions}
 
-        # Sama kortti voi vastata kahta eri PLAY-actionia:
-        # - cont=False
-        # - cont=True
-        # Tällöin kysytään käyttäjältä jatkaako vai ei ennen stepin tekemistä.
         if cont_values == {False, True}:
             self.pending_play_card_id = card_id
             return self.get_public_state()
@@ -185,9 +190,6 @@ class GameManager:
             self.error_message = "no game"
             return self.get_public_state()
 
-        # Case 1:
-        # Samalla kortilla oli sekä cont=False että cont=True vaihtoehto.
-        # Käyttäjä tekee continuation-valinnan ennen kuin kortti pelataan.
         if self.pending_play_card_id is not None:
             if self.state.turn != 0:
                 self.error_message = "not your turn"
@@ -223,8 +225,6 @@ class GameManager:
 
             return self.get_public_state()
 
-        # Case 2:
-        # Jatkovalinta on jo aidosti pending stepin jälkeen.
         if not self.pending_continuation:
             self.error_message = "no continuation pending"
             return self.get_public_state()
@@ -263,6 +263,8 @@ class GameManager:
         if self.state.turn == 0:
             return self.get_public_state()
 
+        self._ensure_model_loaded()
+
         p = self.state.turn
         action = choose_model_action(
             state=self.state,
@@ -292,17 +294,6 @@ class GameManager:
     # =========================
 
     def _settle_state(self):
-        """
-        Auto-resolve non-meaningful intermediate states until we reach:
-          - human PLAY
-          - human GIVE
-          - human CONTINUE
-          - AI_THINKING
-          - GAME_OVER
-
-        In particular:
-          - auto-run human REQUEST if it is the only human action
-        """
         if self.state is None:
             return
 
@@ -316,7 +307,6 @@ class GameManager:
             if self.pending_play_card_id is not None:
                 return
 
-            # AI turn -> frontend should drive visible pacing with /advance
             if self.state.turn != 0:
                 return
 
@@ -335,6 +325,21 @@ class GameManager:
     # =========================
     # INTERNAL HELPERS
     # =========================
+
+    def _ensure_model_loaded(self):
+        if self.model is not None:
+            return
+
+        if not self.model_path.exists():
+            raise FileNotFoundError(
+                f"Model file not found: {self.model_path}. "
+                f"Put the model under backend/models or set MODEL_PATH."
+            )
+
+        self.model = load_policy_model(
+            model_path=str(self.model_path),
+            device=self.device,
+        )
 
     def _normalize_rank(self, rank: int) -> int:
         rank = int(rank)
@@ -368,7 +373,6 @@ class GameManager:
             return "GIVE"
 
         if kinds == {"REQUEST"}:
-            # Tämä pitäisi yleensä settlettää pois, mutta fallback pidetään.
             return "AI_THINKING"
 
         return "PLAY"
