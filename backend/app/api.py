@@ -3,8 +3,6 @@ from __future__ import annotations
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from .game_manager import GameManager
-
 router = APIRouter(prefix="/api/game", tags=["game"])
 
 
@@ -13,6 +11,8 @@ def get_manager():
     try:
         return _manager
     except NameError:
+        from .game_manager import GameManager   # 👈 SIIRRETTY TÄNNE
+
         _manager = GameManager()
         return _manager
 
