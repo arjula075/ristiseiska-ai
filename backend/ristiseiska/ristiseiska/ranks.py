@@ -1,4 +1,4 @@
-# --- Ristiseiska rank logic ---
+# --- ristiseiska rank logic ---
 
 LOW_CHAIN = [7, 6, 5, 4, 3, 2, 14]          # 14 = Ace
 HIGH_CHAIN = [7, 8, 9, 10, 11, 12, 13]      # 11=J,12=Q,13=K
