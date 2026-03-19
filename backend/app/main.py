@@ -1,48 +1,37 @@
-from dotenv import load_dotenv
-load_dotenv()
+from __future__ import annotations
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .game_manager import GameManager
-from .schemas import *
+from .routes import router
 
-app = FastAPI()
-manager = GameManager()
+app = FastAPI(title="Ristiseiska API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://ristiseiska-ai-1.onrender.com",
+        "http://localhost:5173",
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-@app.post("/api/game/new")
-def new_game():
-    return manager.new_game()
+app.include_router(router)
 
 
-@app.get("/api/game/state")
-def state():
-    return manager.get_public_state()
+@app.get("/")
+def root():
+    return {"status": "ok", "service": "ristiseiska-api"}
 
 
-@app.post("/api/game/play")
-def play(req: CardActionRequest):
-    return manager.play_card(req.card_id)
-
-
-@app.post("/api/game/give")
-def give(req: CardActionRequest):
-    return manager.give_card(req.card_id)
-
-
-@app.post("/api/game/continue")
-def cont(req: ContinueRequest):
-    return manager.choose_continuation(req.continue_choice)
-
-
-@app.post("/api/game/advance")
-def advance():
-    return manager.advance_ai()
+@app.get("/health")
+def health():
+    return {"status": "ok"}
