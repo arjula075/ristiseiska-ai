@@ -1,4 +1,7 @@
-const API_BASE = 'http://127.0.0.1:8000'
+const API_BASE =
+    import.meta.env.VITE_API_BASE_URL ||
+    `${window.location.origin}` // fallback prodiin (jos sama domain)
+// || 'http://127.0.0.1:8000' // optional fallback deviin jos haluat
 
 async function handleJson(response) {
     if (!response.ok) {
