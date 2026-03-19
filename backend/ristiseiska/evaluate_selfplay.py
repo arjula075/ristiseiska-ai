@@ -7,12 +7,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from ristiseiska.state import reset
-from ristiseiska.engine import step
-from ristiseiska.moves import available_actions
-from ristiseiska.obs import observe, OBS_DIM
-from ristiseiska.mask import legal_action_mask
-from ristiseiska.actions import ACTION_DIM, decode_action
+from backend.ristiseiska import reset
+from backend.ristiseiska import step
+from backend.ristiseiska import available_actions
+from backend.ristiseiska import observe, OBS_DIM
+from backend.ristiseiska.mask import legal_action_mask
+from backend.ristiseiska import ACTION_DIM, decode_action
 
 
 class PolicyNet(nn.Module):

@@ -6,8 +6,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from ristiseiska.actions import ACTION_DIM
-from ristiseiska.obs import OBS_DIM
+from backend.ristiseiska import ACTION_DIM
+from backend.ristiseiska import OBS_DIM
 
 
 class PolicyNet(nn.Module):

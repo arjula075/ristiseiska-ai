@@ -10,14 +10,14 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from ristiseiska.state import reset, GameState
-from ristiseiska.engine import step
-from ristiseiska.moves import available_actions, Action
-from ristiseiska.obs import observe, OBS_DIM, _suit_deadness
-from ristiseiska.mask import legal_action_mask
-from ristiseiska.actions import ACTION_DIM, decode_action
-from ristiseiska.cards import Suit
-from ristiseiska.ranks import below_from_7, above_from_7
+from backend.ristiseiska import reset, GameState
+from backend.ristiseiska import step
+from backend.ristiseiska import available_actions, Action
+from backend.ristiseiska import observe, OBS_DIM, _suit_deadness
+from backend.ristiseiska.mask import legal_action_mask
+from backend.ristiseiska import ACTION_DIM, decode_action
+from backend.ristiseiska import Suit
+from backend.ristiseiska import below_from_7, above_from_7
 
 
 class PolicyNet(nn.Module):
