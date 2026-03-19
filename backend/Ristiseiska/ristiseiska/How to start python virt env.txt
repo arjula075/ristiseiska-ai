@@ -1,0 +1,8 @@
+source .venv/bin/activate
+
+
+Qlik / Voltti / MS / 
+
+MODEL_PATH=../../Ristiseiska/policy_best_shaped_open7_500k_v2.pt
+
+Jos saisimme teiltä kuvauksen ESPin ja nykyisen allekirjoituspalvelun viestittelystä niin voimme sitten antaa tarjouksemme.

@@ -1,0 +1,623 @@
+# Ristiseiska Human vs AI Web MVP — Technical Spec
+
+## 1. Goal
+
+Build a browser-based MVP where one human plays Ristiseiska against three AI opponents.
+
+The MVP optimizes for:
+
+* clear game state and turn flow
+* correct rule handling
+* responsive human interaction
+* simple architecture
+* low operational complexity
+
+The MVP does **not** optimize for persistence, multiplayer, account systems, or session recovery.
+
+---
+
+## 2. Product scope
+
+### In scope
+
+* Single human player vs 3 AI players
+* Fixed bot model
+* Fixed human seat
+* Browser UI showing hand, table, opponents, turn state, and log
+* Human can play a card by clicking it
+* Human can give a requested card by clicking it
+* Illegal clicks produce clear UI feedback
+* Continuation is handled explicitly in the UI
+* AI turns play automatically with small delays
+* Game ends when the human player has no cards left
+* New game can be started at any time
+* Stateless session model
+
+### Out of scope
+
+* Authentication
+* Save/load game
+* Resume after crash or refresh
+* Seat selection
+* Bot/model selection
+* Rankings across sessions
+* Multiplayer with multiple humans
+* Advanced analytics beyond lightweight visible history/log
+
+---
+
+## 3. Core product decisions
+
+### 3.1 Human seat
+
+* Human is always **Player 0**.
+* AI players are Players 1, 2, and 3.
+
+### 3.2 Bot model
+
+* One fixed production bot model is used for all AI seats.
+* Recommended default: current strongest validated model, likely `policy_best_shaped_*` unless later testing changes that.
+
+### 3.3 Session model
+
+* App is **stateless** from the product perspective.
+* If the page is refreshed or the backend restarts, the current game is lost.
+* User starts a new game manually.
+
+### 3.4 End condition
+
+* The game ends immediately when the **human player runs out of cards**.
+* Full placement resolution for all players is not required for the MVP game flow.
+
+### 3.5 Continuation interaction
+
+* If continuation is available after the human’s play, UI explicitly asks:
+
+  * **Continue**
+  * **Do not continue**
+* If the player continues, the turn proceeds as an extra turn according to rules.
+
+---
+
+## 4. UX requirements
+
+## 4.1 Main game screen layout
+
+The screen contains these areas:
+
+### A. Opponent area
+
+For each AI opponent:
+
+* player label (e.g. Player 1, Player 2, Player 3)
+* card count
+* active turn highlight when applicable
+* cards themselves are hidden
+
+### B. Table area
+
+* Suits displayed clearly as separate lanes/rows/columns
+* Cards on table visible in structured order
+* Open ends visually understandable
+* Newly played card briefly highlighted
+
+### C. Human hand area
+
+* Human hand shown openly
+* Grouped by suit
+* Sorted by rank within suit
+* Clickable cards
+* Optional visual dimming/marking for currently illegal cards
+
+### D. Turn / status banner
+
+Always-visible turn state text, e.g.:
+
+* **Your turn: play a card**
+* **You are being asked to give a card**
+* **Choose whether to continue**
+* **Player 2 is thinking...**
+* **Game over: you finished**
+
+### E. Event log
+
+Small visible move log showing recent game events, e.g.:
+
+* Player 2 played 8♣
+* Player 3 requested hearts
+* You gave K♥
+* Player 1 continued
+
+### F. Controls area
+
+At minimum:
+
+* **New game** button
+* Optional small status text like current model name or game id
+
+---
+
+## 5. Interaction model
+
+## 5.1 Human PLAY flow
+
+When it is the human’s turn to play:
+
+* User clicks a card in hand.
+* Frontend sends the selected card/action intent to backend.
+* Backend validates legality.
+* If legal:
+
+  * card is played
+  * table updates
+  * log updates
+  * continuation check happens if relevant
+* If illegal:
+
+  * state does not change
+  * UI shows clear feedback
+
+### Illegal play feedback examples
+
+* “That card cannot be played now.”
+* “You must respond to the request instead of playing to the table.”
+* “That is not a legal continuation choice.”
+
+## 5.2 Human GIVE flow
+
+When the human is required to give a card:
+
+* UI clearly switches to GIVE mode
+* UI states who is asking and what is being requested
+* User clicks one of their cards
+* Backend validates legality
+* If legal:
+
+  * card is removed from hand
+  * transfer is applied
+  * log updates
+* If illegal:
+
+  * state does not change
+  * clear GIVE-specific feedback is shown
+
+## 5.3 Human CONTINUE flow
+
+If the human’s play creates a legal continuation option:
+
+* UI enters a continuation prompt state
+* Prompt is modal or strongly highlighted inline
+* User selects:
+
+  * Continue
+  * Do not continue
+* Backend applies the selected continuation outcome
+* If continuing leads to another playable decision, the player gets the extra turn immediately
+
+Important:
+
+* Continuation is an explicit user choice, not silently auto-resolved.
+
+## 5.4 AI turn flow
+
+When it is an AI player’s turn:
+
+* UI shows active AI player
+* Small artificial delay is applied before action execution
+* Recommended delay:
+
+  * 400–900 ms baseline
+  * optionally slightly randomized for natural feel
+* AI action is executed
+* Table and card counts update
+* Event log updates
+* If multiple chained AI actions occur, each action should still be visible with short pacing
+
+---
+
+## 6. Game rules handling in MVP
+
+The UI must follow backend rule truth. Backend is the source of truth for legality.
+
+### Rule implications for UI
+
+* Human can attempt actions by clicking cards/buttons
+* Backend determines if the action is legal
+* Frontend should still help by visually indicating likely legal vs illegal cards when possible
+* But legality must not be trusted to frontend only
+
+### Required rule-sensitive states
+
+* PLAY required
+* GIVE required
+* CONTINUE decision pending
+* Waiting for AI
+* Game over
+
+---
+
+## 7. End-game behavior
+
+### End condition
+
+* The game ends immediately when the human player has zero cards.
+
+### End-game UI
+
+Show a clear overlay/panel:
+
+* **You finished** / **Game over**
+* final visible board state
+* optional summary:
+
+  * turns taken
+  * cards remaining for opponents
+  * last few log entries
+* **Start new game** button
+
+### Non-human finish cases
+
+For MVP, the game does **not** end when an AI player finishes.
+Only human completion ends the game.
+
+This means backend/game loop must support AI players continuing as normal until the human either finishes later or the game remains in progress.
+
+---
+
+## 8. Technical architecture
+
+## 8.1 Recommended architecture
+
+Use a simple client-server architecture:
+
+### Frontend
+
+* React app
+* Responsible for rendering state and sending user intents
+
+### Backend
+
+* Python service
+* Owns full game state and rules execution
+* Loads AI model
+* Executes AI turns
+* Returns updated state snapshots to frontend
+
+This is the correct split because:
+
+* game engine already exists in Python
+* model inference already exists in Python
+* avoids reimplementing rules in JavaScript
+
+---
+
+## 8.2 Backend responsibilities
+
+Backend should:
+
+* create new game state
+* expose current public game state
+* accept human actions
+* validate legality
+* apply continuation choices
+* execute AI turns with deterministic rule handling
+* expose a serializable state for UI
+* maintain lightweight in-memory session state for the current game
+
+Because app is stateless from product perspective, in-memory backend state is acceptable for MVP.
+No database is required.
+
+---
+
+## 8.3 Frontend responsibilities
+
+Frontend should:
+
+* render state snapshot
+* show hand, table, opponent counts, banner, and log
+* send human action intents
+* block inputs while waiting for backend response
+* show errors from backend
+* animate/highlight recent changes
+
+---
+
+## 9. State model
+
+## 9.1 Backend canonical state
+
+Backend internal state includes at least:
+
+* full game state from existing engine
+* current phase/mode for UI
+* whether continuation decision is pending
+* recent event log
+* current game status (active / game_over)
+* loaded model reference
+
+## 9.2 Frontend view model
+
+Frontend needs a public snapshot like:
+
+* `game_status`
+* `active_player`
+* `ui_mode` (`PLAY`, `GIVE`, `CONTINUE`, `AI_THINKING`, `GAME_OVER`)
+* `human_hand`
+* `opponents` with card counts only
+* `table`
+* `request_context` if any
+* `continuation_context` if any
+* `legal_human_actions` or legal-card hints
+* `recent_events`
+* `error_message` (ephemeral or returned separately)
+
+---
+
+## 10. API sketch
+
+## 10.1 Start new game
+
+`POST /api/game/new`
+
+Response:
+
+* full public game snapshot
+
+## 10.2 Get current game state
+
+`GET /api/game/state`
+
+Response:
+
+* full public game snapshot
+
+## 10.3 Human plays a card
+
+`POST /api/game/play`
+
+Request:
+
+* card identifier
+
+Response:
+
+* updated public game snapshot
+* or validation error
+
+## 10.4 Human gives a card
+
+`POST /api/game/give`
+
+Request:
+
+* card identifier
+
+Response:
+
+* updated public game snapshot
+* or validation error
+
+## 10.5 Human answers continuation prompt
+
+`POST /api/game/continue`
+
+Request:
+
+* `continue: true|false`
+
+Response:
+
+* updated public game snapshot
+
+## 10.6 Advance AI turns
+
+Two valid implementation styles:
+
+### Option A: server advances all needed AI actions before responding
+
+Simpler implementation, less granular animation.
+
+### Option B: explicit AI advance endpoint
+
+`POST /api/game/advance`
+
+Each call advances one AI-visible step.
+This gives the frontend better pacing and visibility.
+
+**Recommendation for MVP:** use **Option B**. It gives cleaner UI control for delayed AI actions and continuation chains.
+
+---
+
+## 11. Recommended turn engine flow
+
+## 11.1 Human action cycle
+
+1. Frontend sends play/give/continue intent
+2. Backend validates and applies it
+3. Backend returns updated state
+4. If next actor is AI, frontend begins AI advance loop with delay
+
+## 11.2 AI advance cycle
+
+1. Frontend waits configured delay
+2. Frontend calls `/api/game/advance`
+3. Backend performs one AI-visible action
+4. Backend returns updated state
+5. Frontend re-renders and decides whether to call advance again
+6. Stop when state returns to human interaction mode or game over
+
+This produces visible, readable AI turns.
+
+---
+
+## 12. UI component proposal
+
+## 12.1 Top-level components
+
+* `GamePage`
+* `StatusBanner`
+* `OpponentRow` / `OpponentPanel`
+* `TableBoard`
+* `HumanHand`
+* `ContinuationPrompt`
+* `EventLog`
+* `ControlsBar`
+* `GameOverModal`
+
+## 12.2 Responsibilities
+
+### `GamePage`
+
+* owns fetched state
+* coordinates API calls
+* manages AI delay loop
+
+### `StatusBanner`
+
+* renders current mode / active actor / errors
+
+### `TableBoard`
+
+* renders suit lanes and cards on table
+* highlights latest played card
+
+### `HumanHand`
+
+* groups cards by suit
+* sorts by rank
+* handles card click interaction
+* shows disabled styling when useful
+
+### `ContinuationPrompt`
+
+* shown only when pending
+* contains continue / do not continue actions
+
+### `EventLog`
+
+* shows latest N events
+
+### `GameOverModal`
+
+* shown when human finishes
+* offers new game
+
+---
+
+## 13. Data representation needs
+
+Frontend needs stable serializable identifiers for cards.
+
+Recommended card payload shape:
+
+* `id`: unique stable string (e.g. `H-13`)
+* `suit`
+* `rank`
+* `label` for UI rendering
+
+Table data should include enough structure to render suit lanes without frontend rule reconstruction.
+
+---
+
+## 14. Error handling
+
+### Backend validation errors
+
+Return structured errors such as:
+
+* `ILLEGAL_PLAY`
+* `ILLEGAL_GIVE`
+* `INVALID_PHASE`
+* `NO_ACTIVE_GAME`
+
+Frontend maps these to readable messages.
+
+### Refresh/crash behavior
+
+If current in-memory game is lost:
+
+* state request returns no active game
+* frontend shows “No active game. Start a new game.”
+
+---
+
+## 15. MVP non-functional requirements
+
+* Human interactions should feel immediate
+* AI actions should be readable, not instant spam
+* No illegal model action fallbacks should leak to UI as corruption
+* UI must remain usable on normal desktop browser widths
+* Mobile support is not required for MVP unless explicitly prioritized later
+
+---
+
+## 16. Open implementation choices to lock next
+
+These should be decided before coding:
+
+1. **Frontend stack details**
+
+   * plain React
+   * React + Vite
+   * styling approach (Tailwind recommended)
+
+2. **Backend web framework**
+
+   * FastAPI recommended for speed and clean JSON APIs
+
+3. **AI action pacing**
+
+   * fixed delay vs randomized delay
+
+4. **How much legality hinting to show in hand**
+
+   * only backend rejection
+   * or pre-highlight legal cards too
+
+5. **How much event log history to keep**
+
+   * recommended: latest 10–20 entries
+
+---
+
+## 17. Recommended MVP implementation plan
+
+### Phase 1 — backend wrapper
+
+* Wrap existing game engine in an API
+* Support new game, state snapshot, human action, continuation, AI advance
+
+### Phase 2 — basic UI
+
+* Render hand, opponents, table, status, controls
+* Allow human play/give clicks
+* Show errors
+
+### Phase 3 — AI pacing and log
+
+* Add delayed AI step loop
+* Add event log and latest action highlight
+
+### Phase 4 — polish
+
+* Better illegal action feedback
+* Continuation prompt polish
+* Game over panel
+* basic visual cleanup
+
+---
+
+## 18. Recommended first coding target
+
+Start with backend state API first.
+
+Build and test these endpoints first:
+
+* `POST /api/game/new`
+* `GET /api/game/state`
+* `POST /api/game/play`
+* `POST /api/game/give`
+* `POST /api/game/continue`
+* `POST /api/game/advance`
+
+When those return clean public snapshots, the frontend becomes straightforward.
