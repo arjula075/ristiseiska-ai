@@ -22,7 +22,7 @@ SUIT_SYMBOL = {
 
 # Tämä tiedosto on tyyliin backend/app/.../game_manager.py
 # backend-kansion saa näin talteen varmasti.
-BACKEND_DIR = Path(__file__).resolve().parents[2]
+BACKEND_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_MODEL_PATH = BACKEND_DIR / "models" / "policy_rl_shaped_open7_500k_v2.pt"
 
 
