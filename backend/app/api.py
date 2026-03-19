@@ -7,7 +7,14 @@ from .game_manager import GameManager
 
 router = APIRouter(prefix="/api/game", tags=["game"])
 
-manager = GameManager()
+
+def get_manager():
+    global _manager
+    try:
+        return _manager
+    except NameError:
+        _manager = GameManager()
+        return _manager
 
 
 class PlayCardRequest(BaseModel):
@@ -24,29 +31,29 @@ class ContinueRequest(BaseModel):
 
 @router.post("/new")
 def new_game():
-    return manager.new_game()
+    return get_manager().new_game()
 
 
 @router.get("/state")
 def get_state():
-    return manager.get_public_state()
+    return get_manager().get_public_state()
 
 
 @router.post("/play")
 def play_card(req: PlayCardRequest):
-    return manager.play_card(req.card_id)
+    return get_manager().play_card(req.card_id)
 
 
 @router.post("/give")
 def give_card(req: GiveCardRequest):
-    return manager.give_card(req.card_id)
+    return get_manager().give_card(req.card_id)
 
 
 @router.post("/continue")
 def choose_continuation(req: ContinueRequest):
-    return manager.choose_continuation(req.continue_choice)
+    return get_manager().choose_continuation(req.continue_choice)
 
 
 @router.post("/advance")
 def advance_ai():
-    return manager.advance_ai()
+    return get_manager().advance_ai()

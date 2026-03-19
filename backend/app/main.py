@@ -1,18 +1,36 @@
 from __future__ import annotations
 
-from fastapi import FastAPI
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
-print("MAIN: before api import")
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from .api import router
-print("MAIN: after api import")
 
 app = FastAPI(title="Ristiseiska API")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://ristiseiska-ai-1.onrender.com",
+        "http://localhost:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(router)
+
 
 @app.get("/")
 def root():
-    return {"ok": True}
+    return {"status": "ok", "service": "ristiseiska-api"}
+
 
 @app.get("/health")
 def health():
