@@ -29,7 +29,9 @@ export async function newGame() {
 }
 
 export async function getState() {
-    return apiFetch('/api/game/state')
+    return apiFetch('/api/game/state', {
+        method: 'GET'
+    })
 }
 
 export async function playCard(cardId) {

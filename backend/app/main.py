@@ -18,6 +18,11 @@ app = FastAPI(title="Ristiseiska API")
 raw_origins = os.getenv("FRONTEND_ORIGINS", "")
 allow_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
 
+if not allow_origins:
+    allow_origins = [
+        "http://localhost:5173",
+    ]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
