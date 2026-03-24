@@ -6,6 +6,8 @@ try:
 except ImportError:
     pass
 
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -13,12 +15,12 @@ from .api import router
 
 app = FastAPI(title="Ristiseiska API")
 
+raw_origins = os.getenv("FRONTEND_ORIGINS", "")
+allow_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://ristiseiska-ai-1.onrender.com",
-        "http://localhost:5173",
-    ],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

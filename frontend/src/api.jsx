@@ -1,7 +1,6 @@
 const API_BASE =
     import.meta.env.VITE_API_BASE_URL ||
-    `${window.location.origin}` // fallback prodiin (jos sama domain)
-// || 'http://127.0.0.1:8000' // optional fallback deviin jos haluat
+    `${window.location.origin}`
 
 async function handleJson(response) {
     if (!response.ok) {
@@ -11,54 +10,60 @@ async function handleJson(response) {
     return response.json()
 }
 
+async function apiFetch(path, options = {}) {
+    const res = await fetch(`${API_BASE}${path}`, {
+        credentials: 'include',
+        ...options,
+        headers: {
+            ...(options.headers || {})
+        }
+    })
+
+    return handleJson(res)
+}
+
 export async function newGame() {
-    const res = await fetch(`${API_BASE}/api/game/new`, {
+    return apiFetch('/api/game/new', {
         method: 'POST'
     })
-    return handleJson(res)
 }
 
 export async function getState() {
-    const res = await fetch(`${API_BASE}/api/game/state`)
-    return handleJson(res)
+    return apiFetch('/api/game/state')
 }
 
 export async function playCard(cardId) {
-    const res = await fetch(`${API_BASE}/api/game/play`, {
+    return apiFetch('/api/game/play', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({ card_id: cardId })
     })
-    return handleJson(res)
 }
 
 export async function giveCard(cardId) {
-    const res = await fetch(`${API_BASE}/api/game/give`, {
+    return apiFetch('/api/game/give', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({ card_id: cardId })
     })
-    return handleJson(res)
 }
 
 export async function chooseContinuation(continueChoice) {
-    const res = await fetch(`${API_BASE}/api/game/continue`, {
+    return apiFetch('/api/game/continue', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({ continue_choice: continueChoice })
     })
-    return handleJson(res)
 }
 
 export async function advanceAi() {
-    const res = await fetch(`${API_BASE}/api/game/advance`, {
+    return apiFetch('/api/game/advance', {
         method: 'POST'
     })
-    return handleJson(res)
 }
