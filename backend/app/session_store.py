@@ -33,20 +33,12 @@ class SessionStore:
 
     def create(self, session_id: str) -> GameManager:
         now = datetime.utcnow()
-        self.cleanup()
-
         manager = GameManager()
         self._sessions[session_id] = SessionEntry(
             manager=manager,
             last_seen=now,
         )
         return manager
-
-    def get_or_create(self, session_id: str) -> GameManager:
-        existing = self.get(session_id)
-        if existing is not None:
-            return existing
-        return self.create(session_id)
 
     def create_session_id(self) -> str:
         return uuid4().hex

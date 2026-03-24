@@ -2,6 +2,20 @@ const API_BASE =
     import.meta.env.VITE_API_BASE_URL ||
     `${window.location.origin}`
 
+const SESSION_KEY = 'ristiseiska_session_id'
+
+function getSessionId() {
+    return sessionStorage.getItem(SESSION_KEY)
+}
+
+function setSessionId(sessionId) {
+    sessionStorage.setItem(SESSION_KEY, sessionId)
+}
+
+function clearSessionId() {
+    sessionStorage.removeItem(SESSION_KEY)
+}
+
 async function handleJson(response) {
     if (!response.ok) {
         const text = await response.text()
@@ -11,21 +25,36 @@ async function handleJson(response) {
 }
 
 async function apiFetch(path, options = {}) {
+    const sessionId = getSessionId()
+
+    const headers = {
+        ...(options.headers || {})
+    }
+
+    if (sessionId) {
+        headers['X-Session-Id'] = sessionId
+    }
+
     const res = await fetch(`${API_BASE}${path}`, {
-        credentials: 'include',
         ...options,
-        headers: {
-            ...(options.headers || {})
-        }
+        headers
     })
 
     return handleJson(res)
 }
 
 export async function newGame() {
-    return apiFetch('/api/game/new', {
+    const data = await apiFetch('/api/game/new', {
         method: 'POST'
     })
+
+    if (data.session_id) {
+        setSessionId(data.session_id)
+    } else {
+        clearSessionId()
+    }
+
+    return data.state
 }
 
 export async function getState() {
