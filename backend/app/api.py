@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Header
+from .app_state import state
 from pydantic import BaseModel
 
 from .session_store import SessionStore
@@ -27,9 +28,13 @@ def _get_existing_manager(session_id: str | None):
         return None
     return store.get(session_id)
 
+def require_ready():
+    if not state.ready:
+        raise HTTPException(status_code=503, detail="Warming up")
 
 @router.post("/new")
-def new_game():
+async def new_game():
+    require_ready()
     session_id = store.create_session_id()
     manager = store.create(session_id)
     state = manager.new_game()
@@ -41,7 +46,8 @@ def new_game():
 
 
 @router.get("/state")
-def get_state(x_session_id: str | None = Header(default=None)):
+async def get_state(x_session_id: str | None = Header(default=None)):
+    require_ready()
     manager = _get_existing_manager(x_session_id)
     if manager is None:
         return {
@@ -62,7 +68,8 @@ def get_state(x_session_id: str | None = Header(default=None)):
 
 
 @router.post("/play")
-def play_card(req: PlayCardRequest, x_session_id: str | None = Header(default=None)):
+async def play_card(req: PlayCardRequest, x_session_id: str | None = Header(default=None)):
+    require_ready()
     manager = _get_existing_manager(x_session_id)
     if manager is None:
         return {"error": "no game"}
@@ -70,7 +77,8 @@ def play_card(req: PlayCardRequest, x_session_id: str | None = Header(default=No
 
 
 @router.post("/give")
-def give_card(req: GiveCardRequest, x_session_id: str | None = Header(default=None)):
+async def give_card(req: GiveCardRequest, x_session_id: str | None = Header(default=None)):
+    require_ready()
     manager = _get_existing_manager(x_session_id)
     if manager is None:
         return {"error": "no game"}
@@ -78,10 +86,11 @@ def give_card(req: GiveCardRequest, x_session_id: str | None = Header(default=No
 
 
 @router.post("/continue")
-def choose_continuation(
+async def choose_continuation(
         req: ContinueRequest,
         x_session_id: str | None = Header(default=None),
 ):
+    require_ready()
     manager = _get_existing_manager(x_session_id)
     if manager is None:
         return {"error": "no game"}
@@ -89,7 +98,8 @@ def choose_continuation(
 
 
 @router.post("/advance")
-def advance_ai(x_session_id: str | None = Header(default=None)):
+async def advance_ai(x_session_id: str | None = Header(default=None)):
+    require_ready()
     manager = _get_existing_manager(x_session_id)
     if manager is None:
         return {"error": "no game"}

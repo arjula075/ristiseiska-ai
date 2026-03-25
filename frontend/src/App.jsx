@@ -7,6 +7,7 @@ import {
     newGame,
     playCard
 } from './api'
+import BackendWarmupScreen from './components/BackendWarmupScreen'
 import StatusBanner from './components/StatusBanner'
 import OpponentPanel from './components/OpponentPanel'
 import TableBoard from './components/TableBoard'
@@ -14,12 +15,33 @@ import HumanHand from './components/HumanHand'
 import EventLog from './components/EventLog'
 
 const AI_DELAY_MS = 600
+const READY_POLL_INTERVAL_MS = 2000
+const READY_MAX_ATTEMPTS = 30
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? ''
 
 export default function App() {
     const [state, setState] = useState(null)
     const [busy, setBusy] = useState(false)
     const [clientError, setClientError] = useState('')
+    const [backendPhase, setBackendPhase] = useState('starting') // starting | warming | ready | timeout | error
     const aiLoopRunningRef = useRef(false)
+
+    async function checkBackendReady() {
+        const res = await fetch(`${BACKEND_URL}/ready`, {
+            method: 'GET',
+            credentials: 'include'
+        })
+
+        if (res.ok) {
+            return { ready: true }
+        }
+
+        if (res.status === 503) {
+            return { ready: false, warming: true }
+        }
+
+        return { ready: false, warming: false }
+    }
 
     async function refreshState() {
         try {
@@ -31,6 +53,8 @@ export default function App() {
     }
 
     async function handleNewGame() {
+        if (backendPhase !== 'ready') return
+
         setBusy(true)
         setClientError('')
         try {
@@ -44,6 +68,7 @@ export default function App() {
     }
 
     async function handleCardClick(card) {
+        if (backendPhase !== 'ready') return
         if (!state) return
         if (busy) return
 
@@ -71,6 +96,7 @@ export default function App() {
     }
 
     async function handleContinuation(choice) {
+        if (backendPhase !== 'ready') return
         if (busy) return
 
         setBusy(true)
@@ -87,10 +113,51 @@ export default function App() {
     }
 
     useEffect(() => {
-        refreshState()
+        let cancelled = false
+
+        async function waitUntilReady() {
+            for (let i = 0; i < READY_MAX_ATTEMPTS; i += 1) {
+                try {
+                    const result = await checkBackendReady()
+
+                    if (cancelled) return
+
+                    if (result.ready) {
+                        setBackendPhase('ready')
+                        await refreshState()
+                        return
+                    }
+
+                    if (result.warming) {
+                        setBackendPhase('warming')
+                    } else {
+                        setBackendPhase('error')
+                    }
+                } catch (err) {
+                    if (!cancelled) {
+                        setBackendPhase('starting')
+                    }
+                }
+
+                await new Promise((resolve) =>
+                    setTimeout(resolve, READY_POLL_INTERVAL_MS)
+                )
+            }
+
+            if (!cancelled) {
+                setBackendPhase('timeout')
+            }
+        }
+
+        waitUntilReady()
+
+        return () => {
+            cancelled = true
+        }
     }, [])
 
     useEffect(() => {
+        if (backendPhase !== 'ready') return
         if (!state) return
         if (busy) return
         if (aiLoopRunningRef.current) return
@@ -105,7 +172,11 @@ export default function App() {
             try {
                 let current = state
 
-                while (!cancelled && current?.ui_mode === 'AI_THINKING') {
+                while (
+                    !cancelled &&
+                    current?.ui_mode === 'AI_THINKING' &&
+                    backendPhase === 'ready'
+                    ) {
                     await new Promise((resolve) => setTimeout(resolve, AI_DELAY_MS))
                     const next = await advanceAi()
                     current = next
@@ -125,11 +196,15 @@ export default function App() {
         return () => {
             cancelled = true
         }
-    }, [state, busy])
+    }, [state, busy, backendPhase])
 
     const mergedError = useMemo(() => {
         return clientError || state?.error || ''
     }, [clientError, state])
+
+    if (backendPhase !== 'ready') {
+        return <BackendWarmupScreen phase={backendPhase} />
+    }
 
     return (
         <div style={styles.page}>
