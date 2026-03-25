@@ -17,7 +17,7 @@ import EventLog from './components/EventLog'
 const AI_DELAY_MS = 600
 const READY_POLL_INTERVAL_MS = 2000
 const READY_MAX_ATTEMPTS = 30
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? ''
+const BACKEND_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 
 export default function App() {
     const [state, setState] = useState(null)
@@ -27,6 +27,7 @@ export default function App() {
     const aiLoopRunningRef = useRef(false)
 
     async function checkBackendReady() {
+        console.log(BACKEND_URL)
         const res = await fetch(`${BACKEND_URL}/ready`, {
             method: 'GET',
             credentials: 'include'

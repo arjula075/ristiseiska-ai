@@ -64,11 +64,6 @@ app.include_router(router)
 def root():
     return {"status": "ok", "service": "ristiseiska-api"}
 
-
-@app.get("/health")
-def health():
-    return {"status": "ok"}
-
 from fastapi.responses import JSONResponse
 
 @app.get("/health")
