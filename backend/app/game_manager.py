@@ -49,9 +49,7 @@ class GameManager:
     # =========================
 
     def new_game(self):
-        self.state = reset(seed=self.next_seed)
-        self.next_seed += 1
-
+        self.state = reset(seed=None)
         self.recent_events.clear()
         self.pending_continuation = False
         self.pending_play_card_id = None
