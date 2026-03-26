@@ -22,7 +22,7 @@ export default function BackendWarmupScreen({ phase }) {
                         <p className="text-sm text-slate-300">
                             Palvelu käynnistyy juuri nyt. Koska käytössä on ilmainen palvelin (Render),
                             se menee välillä lepotilaan ja herää ensimmäisestä pyynnöstä.
-                            Tämä voi kestää muutaman sekunnin.
+                            Tämä voi kestää hetken.
                         </p>
                     </div>
 
@@ -30,12 +30,15 @@ export default function BackendWarmupScreen({ phase }) {
                         <h3 className="font-semibold mb-2">Peli lyhyesti</h3>
                         <ul className="text-sm text-slate-300 space-y-1 list-disc list-inside">
                             <li><strong>Tavoite:</strong> pääse ensimmäisenä eroon korteistasi.</li>
-                            <li>Pöytä alkaa seiskoista.</li>
-                            <li>Samaa maata jatketaan molempiin suuntiin.</li>
+                            <li>Pöytä alkaa seiskoista. Ristiseiskan omaava pelaaja aloittaa</li>
+                            <li>Kun seiska on pelattu, pelataan ensin saman maan kutonen</li>
+                            <li>Kun kutonen on pelattu, voidaan pelata kasi</li>
+                            <li>Kasin jälkeen maa on auki, ja maata jatketaan molempiin suuntiin.</li>
                             <li>Alaspäin: 6 → 5 → 4 → 3 → 2 → A</li>
                             <li>Ylöspäin: 8 → 9 → 10 → J → Q → K</li>
                             <li>Jos et voi pelata, joudut pyytämään kortin.</li>
-                            <li>Jos toinen pelaaja pyytää, sinulta voidaan pyytää kortti annettavaksi.</li>
+                            <li>Jos toinen pelaaja pyytää, saat antaa hänelle kortin.</li>
+                            <li>Päätöskortin (K/A) jälkeen voit jatkaa halutessasi lyömällä seuraavan käyvän kortin</li>
                         </ul>
                     </div>
 
