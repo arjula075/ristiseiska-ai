@@ -6,7 +6,7 @@ import os
 
 from ristiseiska.state import reset
 from ristiseiska.engine import step
-from ristiseiska.moves import available_actions, Action
+from ristiseiska.moves import available_actions, Action, legal_plays
 
 from .ai_player import choose_model_action
 from .model_loader import load_policy_model
@@ -20,8 +20,6 @@ SUIT_SYMBOL = {
     "SPADES": "♠",
 }
 
-# Tämä tiedosto on tyyliin backend/app/.../game_manager.py
-# backend-kansion saa näin talteen varmasti.
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_MODEL_PATH = BACKEND_DIR / "models" / "policy_rl_shaped_open7_500k_v2.pt"
 
@@ -76,22 +74,38 @@ class GameManager:
                 "table": {"suits": []},
                 "pending_continuation": False,
                 "pending_play_card_id": None,
+                "playable_card_ids": [],
                 "recent_events": list(self.recent_events),
                 "error": self.error_message,
             }
 
         ui_mode = self._detect_mode()
 
+        human_hand_cards = self.state.hands[0]
+        human_hand_serialized = self._serialize_hand(human_hand_cards)
+
+        if ui_mode == "PLAY":
+            try:
+                playable = legal_plays(human_hand_cards, self.state.table)
+                playable_ids = [self._card_id(c) for c in playable]
+            except Exception:
+                playable_ids = []
+        elif ui_mode == "GIVE":
+            playable_ids = [self._card_id(c) for c in human_hand_cards]
+        else:
+            playable_ids = []
+
         return {
             "game_status": "game_over" if self._is_game_over() else "active",
             "ui_mode": ui_mode,
             "active_player": self.state.turn,
             "human_player": 0,
-            "human_hand": self._serialize_hand(self.state.hands[0]),
+            "human_hand": human_hand_serialized,
             "opponents": self._serialize_opponents(),
             "table": self._serialize_table(),
             "pending_continuation": self.pending_continuation,
             "pending_play_card_id": self.pending_play_card_id,
+            "playable_card_ids": playable_ids,
             "recent_events": list(self.recent_events),
             "error": self.error_message,
         }
@@ -443,10 +457,7 @@ class GameManager:
         suits = []
 
         for suit_name in SUIT_ORDER:
-            suit_enum = next(
-                (s for s in played.keys() if s.name == suit_name),
-                None,
-            )
+            suit_enum = next((s for s in played.keys() if s.name == suit_name), None)
 
             suit_cards = []
             if suit_enum is not None:

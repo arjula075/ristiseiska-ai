@@ -13,6 +13,8 @@ import OpponentPanel from './components/OpponentPanel'
 import TableBoard from './components/TableBoard'
 import HumanHand from './components/HumanHand'
 import EventLog from './components/EventLog'
+import EventBanner from './components/EventBanner'
+import VictoryBanner from './components/VictoryBanner'
 
 const AI_DELAY_MS = 600
 const READY_POLL_INTERVAL_MS = 2000
@@ -25,6 +27,10 @@ export default function App() {
     const [clientError, setClientError] = useState('')
     const [backendPhase, setBackendPhase] = useState('starting') // starting | warming | ready | timeout | error
     const aiLoopRunningRef = useRef(false)
+    const [eventBanner, setEventBanner] = useState(null)
+    const previousOpponentsRef = useRef([])
+    const previousEventsRef = useRef([])
+    const [victoryBanner, setVictoryBanner] = useState(null)
 
     async function checkBackendReady() {
         console.log(BACKEND_URL)
@@ -114,6 +120,45 @@ export default function App() {
     }
 
     useEffect(() => {
+        if (!state) return
+
+        const currentEvents = state.recent_events ?? []
+        const previousEvents = previousEventsRef.current
+        const latestEvent = currentEvents[currentEvents.length - 1]
+
+        // 1) Sinä jouduit ottamaan kortin
+        if (
+            latestEvent &&
+            latestEvent !== previousEvents[previousEvents.length - 1] &&
+            latestEvent.includes('You cannot play. Requesting a card...')
+        ) {
+            setEventBanner({
+                message: 'Voi ei — jouduit ottamaan kortin.',
+                tone: 'warning'
+            })
+        }
+
+        // 2) Tietokonepelaaja pääsi pois
+        const prevOpponents = previousOpponentsRef.current
+        const currentOpponents = state.opponents ?? []
+
+        for (const current of currentOpponents) {
+            const prev = prevOpponents.find((p) => p.player === current.player)
+
+            if (prev && prev.cards > 0 && current.cards === 0) {
+                setEventBanner({
+                    message: `Pelaaja ${current.player} pääsi pois — nyt pelataan enää sijoista.`,
+                    tone: 'danger'
+                })
+                break
+            }
+        }
+
+        previousEventsRef.current = currentEvents
+        previousOpponentsRef.current = currentOpponents
+    }, [state])
+
+    useEffect(() => {
         let cancelled = false
 
         async function waitUntilReady() {
@@ -156,6 +201,52 @@ export default function App() {
             cancelled = true
         }
     }, [])
+
+    useEffect(() => {
+        if (!eventBanner) return
+
+        const timer = setTimeout(() => {
+            setEventBanner(null)
+        }, 3000)
+
+        return () => clearTimeout(timer)
+    }, [eventBanner])
+
+    useEffect(() => {
+        if (!state) return
+
+        if (state.game_status !== 'game_over') {
+            setVictoryBanner(null)
+            return
+        }
+
+        const winner = (state.opponents ?? []).find((opponent) => opponent.cards === 0)
+        const humanCards = state.human_hand?.length ?? 0
+
+        if (winner) {
+            setVictoryBanner({
+                tone: 'lose',
+                title: `Pelaaja ${winner.player} voitti`,
+                text: 'Sinä et ehtinyt ensimmäisenä ulos.'
+            })
+            return
+        }
+
+        if (humanCards === 0) {
+            setVictoryBanner({
+                tone: 'win',
+                title: 'Voitto!',
+                text: 'Pääsit ensimmäisenä eroon korteistasi.'
+            })
+            return
+        }
+
+        setVictoryBanner({
+            tone: 'lose',
+            title: 'Peli päättyi',
+            text: 'Voittajaa ei saatu pääteltyä käyttöliittymässä.'
+        })
+    }, [state])
 
     useEffect(() => {
         if (backendPhase !== 'ready') return
@@ -235,16 +326,31 @@ export default function App() {
                     ))}
                 </div>
 
-                <TableBoard table={state?.table} />
+                <div style={styles.gameLayout}>
+                    <div style={styles.tableOuter}>
+                        <div style={styles.tableInner}>
+                            <TableBoard table={state?.table} />
+                        </div>
+                        {victoryBanner && <VictoryBanner result={victoryBanner} />}
 
-                <div style={styles.bottomGrid}>
-                    <HumanHand
-                        hand={state?.human_hand ?? []}
-                        state={state}
-                        busy={busy}
-                        onCardClick={handleCardClick}
-                    />
-                    <EventLog events={state?.recent_events ?? []} />
+                        {eventBanner && (
+                            <EventBanner
+                                message={eventBanner.message}
+                                tone={eventBanner.tone}
+                            />
+                        )}
+                    </div>
+
+
+                    <div style={styles.sideColumn}>
+                        <HumanHand
+                            hand={state?.human_hand ?? []}
+                            state={state}
+                            busy={busy}
+                            onCardClick={handleCardClick}
+                        />
+                        <EventLog events={state?.recent_events ?? []} />
+                    </div>
                 </div>
             </div>
         </div>
@@ -252,35 +358,62 @@ export default function App() {
 }
 
 const styles = {
+    tableOuter: {
+        width: '100%'
+    },
+
+    tableInner: {
+        width: '100%',
+        display: 'grid',
+        gap: 12
+    },
+
     page: {
         minHeight: '100vh',
         background: '#0f172a',
         color: '#e5e7eb',
         padding: 24
     },
+
     container: {
-        maxWidth: 1200,
+        maxWidth: 1440,
         margin: '0 auto'
     },
+
     title: {
         marginTop: 0,
         marginBottom: 16
     },
+
     controls: {
         marginBottom: 16
     },
+
     opponentsRow: {
         display: 'flex',
         gap: 12,
         flexWrap: 'wrap',
         marginBottom: 16
     },
-    bottomGrid: {
+
+    gameLayout: {
         display: 'grid',
-        gridTemplateColumns: '2fr 1fr',
+        gridTemplateColumns: 'minmax(0, 2fr) minmax(320px, 420px)',
         gap: 16,
         alignItems: 'start'
     },
+
+    mainColumn: {
+        minWidth: 0
+    },
+
+    sideColumn: {
+        minWidth: 0,
+        display: 'grid',
+        gap: 16,
+        alignContent: 'start'
+    },
+
     primaryButton: {
         background: '#2563eb',
         color: 'white',

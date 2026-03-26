@@ -1,0 +1,148 @@
+.playing-card {
+    width: 72px;
+    height: 108px;
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.18);
+    border-radius: 12px;
+    box-shadow:
+            0 2px 8px rgba(15, 23, 42, 0.16),
+            0 1px 2px rgba(15, 23, 42, 0.08);
+    padding: 0;
+    position: relative;
+    cursor: pointer;
+    transition:
+            transform 0.14s ease,
+            box-shadow 0.14s ease,
+            border-color 0.14s ease,
+            opacity 0.14s ease;
+    user-select: none;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.playing-card:hover:not(:disabled) {
+    transform: translateY(-6px);
+    box-shadow:
+            0 8px 20px rgba(15, 23, 42, 0.2),
+            0 2px 4px rgba(15, 23, 42, 0.12);
+}
+
+.playing-card:disabled {
+    cursor: default;
+}
+
+.playing-card.is-playable {
+    border-color: #22c55e;
+    box-shadow:
+            0 0 0 2px rgba(34, 197, 94, 0.28),
+            0 2px 8px rgba(15, 23, 42, 0.16);
+}
+
+.playing-card.is-disabled {
+    opacity: 0.45;
+}
+
+.playing-card.is-small {
+    width: 54px;
+    height: 80px;
+    border-radius: 10px;
+}
+
+.suit-red {
+    color: #c1121f;
+}
+
+.suit-black {
+    color: #111827;
+}
+
+.pc-corner {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 0.9;
+    width: 16px;
+    z-index: 2;
+}
+
+.pc-corner-top {
+    top: 6px;
+    left: 6px;
+}
+
+.pc-corner-bottom {
+    right: 6px;
+    bottom: 6px;
+    transform: rotate(180deg);
+}
+
+.pc-rank {
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.pc-suit {
+    font-size: 0.78rem;
+    margin-top: 1px;
+}
+
+.pc-center {
+    position: absolute;
+    inset: 0;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    min-height: 0;
+    z-index: 1;
+}
+
+.pc-center-rank {
+    font-size: 1.7rem;
+    font-weight: 700;
+}
+
+.pc-center-suit {
+    font-size: 1.9rem;
+    margin-top: 3px;
+}
+
+.playing-card.is-small .pc-corner {
+    width: 12px;
+}
+
+.playing-card.is-small .pc-corner-top {
+    top: 4px;
+    left: 4px;
+}
+
+.playing-card.is-small .pc-corner-bottom {
+    right: 4px;
+    bottom: 4px;
+}
+
+.playing-card.is-small .pc-rank {
+    font-size: 0.68rem;
+}
+
+.playing-card.is-small .pc-suit {
+    font-size: 0.64rem;
+    margin-top: 0;
+}
+
+.playing-card.is-small .pc-center {
+    padding: 15px 10px;
+}
+
+.playing-card.is-small .pc-center-rank {
+    font-size: 1.08rem;
+}
+
+.playing-card.is-small .pc-center-suit {
+    font-size: 1.18rem;
+    margin-top: 1px;
+}

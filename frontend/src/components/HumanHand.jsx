@@ -1,3 +1,5 @@
+import PlayingCard from './PlayingCard'
+
 const suitOrder = ['CLUBS', 'DIAMONDS', 'HEARTS', 'SPADES']
 const suitLabels = {
     CLUBS: '♣ Clubs',
@@ -18,6 +20,8 @@ export default function HumanHand({ hand, state, busy, onCardClick }) {
         !state?.pending_play_card_id &&
         !state?.pending_continuation
 
+    const playableIds = new Set(state?.playable_card_ids ?? [])
+
     return (
         <div style={styles.wrap}>
             <h3 style={styles.heading}>Your hand</h3>
@@ -25,26 +29,27 @@ export default function HumanHand({ hand, state, busy, onCardClick }) {
             {grouped.map((group) => (
                 <div key={group.suit} style={styles.group}>
                     <div style={styles.groupTitle}>{suitLabels[group.suit]}</div>
+
                     <div style={styles.row}>
                         {group.cards.length === 0 ? (
                             <span style={styles.empty}>—</span>
                         ) : (
-                            group.cards.map((card) => (
-                                <button
-                                    key={card.id}
-                                    type="button"
-                                    onClick={() => onCardClick(card)}
-                                    disabled={!clickable || busy}
-                                    style={{
-                                        ...styles.cardButton,
-                                        opacity: clickable && !busy ? 1 : 0.6,
-                                        cursor: clickable && !busy ? 'pointer' : 'default'
-                                    }}
-                                    title={card.id}
-                                >
-                                    {card.label}
-                                </button>
-                            ))
+                            group.cards.map((card) => {
+                                const playable =
+                                    clickable &&
+                                    !busy &&
+                                    playableIds.has(card.id)
+
+                                return (
+                                    <PlayingCard
+                                        key={card.id}
+                                        card={card}
+                                        playable={playable}
+                                        disabled={!playable}
+                                        onClick={onCardClick}
+                                    />
+                                )
+                            })
                         )}
                     </div>
                 </div>
@@ -73,16 +78,9 @@ const styles = {
     },
     row: {
         display: 'flex',
-        gap: 8,
-        flexWrap: 'wrap'
-    },
-    cardButton: {
-        background: '#1f2937',
-        color: '#e5e7eb',
-        border: '1px solid #475569',
-        borderRadius: 8,
-        padding: '10px 12px',
-        minWidth: 56
+        gap: 10,
+        flexWrap: 'wrap',
+        alignItems: 'flex-start'
     },
     empty: {
         color: '#94a3b8'
